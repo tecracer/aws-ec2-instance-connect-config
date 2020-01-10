@@ -46,7 +46,7 @@ while [ $try -lt 3 ] ; do
     # Make 3 attempts to push a key
     awstry="0"
     while [ $awstry -lt 3 ] ; do
-        aws ec2-instance-connect send-ssh-public-key --region us-west-2 --instance-id "${instance_id}" --availability-zone "${zone}" --instance-os-user "${osuser}" --ssh-public-key "file://${keyfile}.pub" 1>/dev/null
+        aws ec2-instance-connect send-ssh-public-key --region ${region} --instance-id "${instance_id}" --availability-zone "${zone}" --instance-os-user "${osuser}" --ssh-public-key "file://${keyfile}.pub" 1>/dev/null
         aws_code=$?
         if [ $aws_code -ne 0 ] ; then
             sleep 5

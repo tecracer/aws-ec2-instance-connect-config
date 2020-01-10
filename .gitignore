@@ -1,0 +1,5 @@
+.vagrant
+Vagrantfile
+Vagrantfile.*
+report
+testall.sh

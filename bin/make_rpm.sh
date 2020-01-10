@@ -38,7 +38,7 @@ cp $TOPDIR/rpmsrc/SPECS/generic.spec $BUILDDIR/SPECS/ec2-instance-connect.spec
 cp $TOPDIR/src/bin/* $BUILDDIR/ec2-instance-connect-$version/opt/aws/bin/
 cp $TOPDIR/rpmsrc/.rpmmacros $BUILDDIR/
 
-/bin/sed -i "s%^ca_path=/etc/ssl/certs$%ca_path=/etc/ssl/certs/ca-bundle.crt%" $BUILDDIR/ec2-instance-connect-$version/opt/aws/bin/eic_curl_authorized_keys
+sed -i "s%^ca_path=/etc/ssl/certs$%ca_path=/etc/ssl/certs/ca-bundle.crt%" $BUILDDIR/ec2-instance-connect-$version/opt/aws/bin/eic_curl_authorized_keys
 
 # Trick rpmbuild into thinking this is homedir to read .rpmmacros
 REALHOME=$HOME
