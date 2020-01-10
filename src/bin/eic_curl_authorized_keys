@@ -15,15 +15,14 @@
 
 # Reads and echoes EC2 Metadata to get the authorized keys blob for the user $1
 
-set -e
-
 # Set umask so only we can touch temp files
 umask 077
 
-curl_cmd="/usr/bin/curl -s -f -m 1"
+TOKEN=`/usr/bin/curl -s -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600"`
+curl_cmd='/usr/bin/curl  -H "X-aws-ec2-metadata-token: $TOKEN" -s -f -m 1 '
 
 # Verify the instance ID itself
-instance=$(eval "${curl_cmd}" "http://169.254.169.254/latest/meta-data/instance-id/")
+export instance=$(eval "${curl_cmd}" "http://169.254.169.254/latest/meta-data/instance-id/")
 if [ -z "${instance}" ] ; then
   exit 0
 fi
@@ -75,16 +74,16 @@ fi
 zone=$(eval "${curl_cmd}" "http://169.254.169.254/latest/meta-data/placement/availability-zone/")
 if [ $? -ne 0 ]
 then
-    exit 255
+    exit 77
 fi
 # Validate the zone is aa-bb-#c (or aa-bb-cc-#d for special partitions like AWS GovCloud)
-/bin/echo "${zone}" | /bin/grep -Eq "^([a-z]+-){2,3}[0-9][a-z]$" || exit 255
+/bin/echo "${zone}" | /bin/grep -Eq "^([a-z]+-){2,3}[0-9][a-z]$" || exit 80
 
 region=$(/bin/echo "${zone}" | /bin/sed -n 's/\(\([a-z]\+-\)\+[0-9]\+\).*/\1/p')
 domain=$(eval "${curl_cmd}" "http://169.254.169.254/latest/meta-data/services/domain/")
 if [ $? -ne 0 ]
 then
-    exit 255
+    exit 86
 fi
 
 expected_signer=$(/usr/bin/printf 'managed-ssh-signer.%s.%s' "${region}" "${domain}")
@@ -97,7 +96,7 @@ trap 'rm -rf "${userpath}"' EXIT
 certificate=$(eval "${curl_cmd}" "http://169.254.169.254/latest/meta-data/managed-ssh-keys/signer-cert/")
 if [ -z "${certificate}" ]
 then
-  exit 255
+  exit 99
 fi
 # parse_authorized_keys will verify this
 
@@ -105,16 +104,17 @@ fi
 staple_paths=$(eval "${curl_cmd}" "http://169.254.169.254/latest/meta-data/managed-ssh-keys/signer-ocsp/")
 if [ $? -ne 0 ]
 then
-    exit 255
+    exit 107
 fi
 
 ocsp_path=$(/bin/mktemp -d "${userpath}/eic-ocsp-XXXXXXXX")
 for word in $staple_paths
 do
+    
     eval "${curl_cmd}" "http://169.254.169.254/latest/meta-data/managed-ssh-keys/signer-ocsp/${word}" | /usr/bin/base64 -d > "${ocsp_path}/${word}"
     if [ $? -ne 0 ]
     then
-        exit 255
+        exit 117
     fi
     /bin/chmod 400 "${ocsp_path}/${word}" # Disable access to staple file
 done

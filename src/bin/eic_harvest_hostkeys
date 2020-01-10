@@ -17,30 +17,32 @@ set -e
 
 umask 077
 
-curl_cmd="/usr/bin/curl -s -f -m 1"
+TOKEN=`/usr/bin/curl -s -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600"`
+curl_cmd='/usr/bin/curl  -H "X-aws-ec2-metadata-token: $TOKEN" -s -f -m 1'
+
 
 # Verify the instance ID itself
 instance=$(eval "${curl_cmd}" "http://169.254.169.254/latest/meta-data/instance-id/")
 if [ -z "${instance}" ] ; then
-  exit 255
+  exit 27
 fi
 # Validate the instance ID is i-abcd1234 (8 or 17 char, hex)
 # We have it buffered to 32 chars to futureproof any further EC2 format changes (given some other EC2 resources are already 32 char)
-/bin/echo "${instance}" | /bin/grep -Eq "^i-[0-9a-f]{8,32}$" || exit 255
+/bin/echo "${instance}" | /bin/grep -Eq "^i-[0-9a-f]{8,32}$" || exit 31
 
 # Verify we have an EC2 uuid
 if [ ! -f /sys/hypervisor/uuid ] ; then
     # Nitro, switch to DMI check
     if [ ! -f /sys/devices/virtual/dmi/id/board_asset_tag ] ; then
         # We're out of options.  This is definitely not an instance.
-        exit 255
+        exit 38
     elif [ ! $(/bin/cat /sys/devices/virtual/dmi/id/board_asset_tag) = "${instance}" ] ; then
         # The board_asset_tag does not match the instance id.  This is not a valid instance.
-        exit 255
+        exit 41
     fi
 elif [ ! $(/usr/bin/cut -c1-3 < /sys/hypervisor/uuid) = "ec2" ] ; then
     # Leading bytes are not "ec2"
-    exit 255
+    exit 45
 fi
 
 # Calculate the SHA256 of a given string
@@ -87,20 +89,20 @@ trap 'rm -rf "${userpath}"' EXIT
 zone=$(eval "${curl_cmd}" "http://169.254.169.254/latest/meta-data/placement/availability-zone/")
 if [ $? -ne 0 ]
 then
-    exit 255
+    exit 92
 fi
 
 # Validate the zone
 if [[ ! "${zone}" =~ ^([a-z]+-){2,3}[0-9][a-z]$ ]]
 then
-    exit 255
+    exit 98
 fi
 
 # Get domain for calls
 domain=$(eval "${curl_cmd}" "http://169.254.169.254/latest/meta-data/services/domain/")
 if [ $? -ne 0 ]
 then
-    exit 255
+    exit 105
 fi
 
 #Extract region from zone
@@ -111,7 +113,7 @@ hostkeys=$(/bin/echo "${keys:?}")
 accountId=$(eval "${curl_cmd} http://169.254.169.254/latest/dynamic/instance-identity/document" | /bin/grep -oP '(?<="accountId" : ")[^"]*(?=")')
 if [[ ! "${accountId}" =~ ^[0-9]{12}$ ]]
 then
-    exit 255
+    exit 116
 fi
 val='{"AccountID":"'${accountId}'","AvailabilityZone":"'${zone}'","HostKeys":['${hostkeys}'],"InstanceId":"'${instance}'"}'
 
@@ -119,7 +121,7 @@ val='{"AccountID":"'${accountId}'","AvailabilityZone":"'${zone}'","HostKeys":['$
 creds=$(eval "${curl_cmd} http://169.254.169.254/latest/meta-data/identity-credentials/ec2/security-credentials/ec2-instance/")
 if [ $? -ne 0 ] ; then
     # We failed to load instance-identity credentials
-    exit 255
+    exit 124
 fi
 AWS_ACCESS_KEY_ID=$(/bin/echo "${creds}" | /bin/sed -n 's/.*"AccessKeyId" : "\(.*\)",/\1/p')
 AWS_SECRET_ACCESS_KEY=$(/bin/echo "${creds}" | /bin/sed -n 's/.*"SecretAccessKey" : "\(.*\)",/\1/p')

@@ -219,8 +219,9 @@ curtime=$(/bin/date +%s)
 # We also want to capture overall exit code
 # We also need to redirect the input into our loop
 # The simplest solution to all of the above is to take advantage of how sh pipes spawn a subprocess
+TOKEN=`/usr/bin/curl -s -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600"`
 output=$(eval "${read_command}" | (
-    exitcode=255 # Exit code if no valid keys are provided
+    exitcode=223 # Exit code if no valid keys are provided
     count=0
 
     # Read loop - pull timestamp line at start of iteration

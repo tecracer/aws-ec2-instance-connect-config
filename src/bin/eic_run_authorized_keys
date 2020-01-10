@@ -15,6 +15,5 @@
 
 # Quickie to wrap curl_authorized_keys in a timeout
 # Necessary for older versions of openssh where AuthorizedKeysCommand must be a filepath
-set -e
 DIR="$( cd "$( dirname "${0}" )" && pwd )"
-/usr/bin/timeout 5s "${DIR}/eic_curl_authorized_keys" "$@"
+/bin/timeout 5s "${DIR}/eic_curl_authorized_keys" "$@"
